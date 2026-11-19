@@ -1,0 +1,17 @@
+@startuml
+title Knock Knock - samtale for én klient
+
+[*] --> WaitingForWhosThere : klient forbinder /\nserver: "Knock! Knock!"
+
+WaitingForWhosThere --> WaitingForWho : "Who's there?" /\nserver: <Who>
+WaitingForWhosThere --> WaitingForWhosThere : forkert svar /\n"You are supposed to say: Who's there?"
+
+WaitingForWho --> Finished : "<Who> who?" /\nserver: <Punchline> Want another joke? (y/n)
+WaitingForWho --> WaitingForWho : forkert svar /\n"You are supposed to say: <Who> who?"
+
+Finished --> WaitingForWhosThere : "y" / ny joke vælges,\nserver: "Knock! Knock!"
+Finished --> Finished : andet svar /\n"Please answer y or n."
+Finished --> [*] : "n" / server: "Bye!"
+
+note "Klienten afbryder forbindelsen\n(fra alle tilstande) -> samtalen slutter" as N
+@enduml

@@ -1,0 +1,102 @@
+@startuml
+title Knock Knock Server - klassediagram
+
+package "Netværk" {
+  class KnockKnockTcpServer {
+    - _options : ServerOptions
+    - _jokeSelector : IJokeSelector
+    - _clients : List<TcpClient>
+    - _lock : object
+    + Run()
+    + Stop()
+    - Reject(client : TcpClient)
+  }
+
+  class ClientHandler {
+    - _id : int
+    - _client : TcpClient
+    - _protocol : KnockKnockProtocol
+    + Run()
+  }
+}
+
+package "Samtalelogik (State Pattern)" {
+  class KnockKnockProtocol {
+    + State : IConversationState
+    + CurrentJoke : KnockKnockJoke
+    + IsDone : bool
+    + Start() : string
+    + ProcessInput(input : string) : string
+  }
+
+  interface IConversationState {
+    + Handle(protocol, input) : string
+  }
+  class WaitingForWhosThereState
+  class WaitingForWhoState
+  class FinishedState
+
+  IConversationState <|.. WaitingForWhosThereState
+  IConversationState <|.. WaitingForWhoState
+  IConversationState <|.. FinishedState
+}
+
+package "Valg af joke (Strategy Pattern)" {
+  interface IJokeSelector {
+    + SelectJoke() : KnockKnockJoke
+  }
+  class RandomJokeSelector {
+    + SelectJoke() : KnockKnockJoke
+  }
+  class SequentialJokeSelector {
+    - _nextIndex : int
+    - _lock : object
+    + SelectJoke() : KnockKnockJoke
+  }
+  class KnockKnockJoke {
+    + Who : string
+    + Punchline : string
+  }
+
+  IJokeSelector <|.. RandomJokeSelector
+  IJokeSelector <|.. SequentialJokeSelector
+}
+
+package "Konfiguration" {
+  class ServerOptions {
+    + Port : int
+    + MaxClients : int
+  }
+  class JokeSelectionOptions {
+    + Strategy : string
+  }
+  class JokeOptions {
+    + Jokes : List<KnockKnockJoke>
+  }
+}
+
+class Program {
+  + Main(args)
+}
+note right of Program
+  Læser appsettings.json og validerer den
+  Opretter objekterne med new
+  Vælger strategi ud fra JokeSelection:Strategy
+end note
+
+KnockKnockTcpServer ..> ClientHandler : opretter + starter\nen tråd pr. klient
+KnockKnockTcpServer --> ServerOptions
+KnockKnockTcpServer --> IJokeSelector : delt af alle klienter
+ClientHandler "1" *-- "1" KnockKnockProtocol : egen samtaletilstand
+KnockKnockProtocol --> IJokeSelector
+KnockKnockProtocol --> IConversationState : aktuel tilstand
+KnockKnockProtocol --> KnockKnockJoke
+RandomJokeSelector o-- KnockKnockJoke
+SequentialJokeSelector o-- KnockKnockJoke
+JokeOptions o-- KnockKnockJoke
+Program ..> KnockKnockTcpServer
+Program ..> IJokeSelector : opretter Random\neller Sequential
+Program ..> ServerOptions
+Program ..> JokeSelectionOptions
+Program ..> JokeOptions
+@enduml
